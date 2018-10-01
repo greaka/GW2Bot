@@ -9,6 +9,7 @@ import discord
 from .account import AccountMixin
 from .achievements import AchievementsMixin
 from .api import ApiMixin
+from .botauthentication import AuthApiMixin
 from .characters import CharactersMixin
 from .commerce import CommerceMixin
 from .daily import DailyMixin
@@ -27,11 +28,11 @@ from .wallet import WalletMixin
 from .wvw import WvwMixin
 
 
-class GuildWars2(AccountMixin, AchievementsMixin, ApiMixin, CharactersMixin,
-                 CommerceMixin, DailyMixin, DatabaseMixin, EmojiMixin,
-                 EventsMixin, GuildMixin, GuildManageMixin, KeyMixin,
-                 MiscMixin, NotiifiersMixin, PvpMixin, SkillsMixin,
-                 WalletMixin, WvwMixin):
+class GuildWars2(AccountMixin, AchievementsMixin, ApiMixin, AuthApiMixin,
+                 CharactersMixin, CommerceMixin, DailyMixin, DatabaseMixin,
+                 EmojiMixin, EventsMixin, GuildMixin, GuildManageMixin,
+                 KeyMixin, MiscMixin, NotiifiersMixin, PvpMixin,
+                 SkillsMixin, WalletMixin, WvwMixin):
     """Guild Wars 2 commands"""
 
     def __init__(self, bot):
