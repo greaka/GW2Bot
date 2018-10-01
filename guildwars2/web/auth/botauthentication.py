@@ -4,11 +4,11 @@ import discord
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-app = Blueprint("botauthentication", __name__)
+auth = Blueprint("botauthentication", __name__)
 
 
 class AuthApiMixin:
-    @app.route("/requestapikey", methods=['POST', 'GET'])
+    @auth.route("/requestapikey", methods=['POST', 'GET'])
     def request_api_key(self):
         arguments = None
         if request.method == 'POST':
