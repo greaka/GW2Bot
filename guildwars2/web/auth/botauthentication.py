@@ -1,23 +1,26 @@
-from flask import Flask
+from flask import Blueprint, request
 import asyncio
 import discord
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-class AuthApiMixin:
+app = Blueprint("botauthentication", __name__)
 
+
+class AuthApiMixin:
     @app.route("/requestapikey", methods=['POST', 'GET'])
-    def request_api_key():
-        error = None
+    def request_api_key(self):
         arguments = None
         if request.method == 'POST':
             arguments = request.form
-        else if request.method == 'GET':
-            arguments = request.args
+        else:
+            if request.method == 'GET':
+                arguments = request.args
 
         if not arguments:
             return "invalid method call {.method}".format(request), 400
-        
+
+        keyrequest = {}
         keyrequest.state = arguments.get('state', '')
         try:
             keyrequest.userid = arguments['userid']
@@ -26,18 +29,18 @@ class AuthApiMixin:
         except:
             return "missing parameters", 400
 
-        self.bot.loop.create_task(ask_for_validation(keyrequest))
+        self.bot.loop.create_task(self.ask_for_validation(keyrequest))
         return "OK", 200
 
-    async def ask_for_validation(keyrequest):
+    async def ask_for_validation(self, keyrequest):
         user = await self.bot.get_user_info(keyrequest.userid)
 
         def check(m):
-            return m.author == user and isinstance(
-                    m.channel, discord.abc.PrivateChannel)
+            return m.author == user and isinstance(m.channel,
+                                                   discord.abc.PrivateChannel)
 
-        
         doc = await self.bot.database.get(user, self)
+        ctx = {}
         ctx.author = user
         ctx.prefix = ''
         embed = await self.display_keys(
@@ -51,16 +54,19 @@ class AuthApiMixin:
                 """Authentication request from {.name}.
                 Type the numbers of the keys you want to export. Seperate them with `,`.
                 e.g.: `1, 2, 3` or simply `all`.
-                """.format(keyrequest) "If you did not initiate this, ignore this "
-                "or contact the bot owner."
-                "\nTo cancel the authentication, type anything invalid, e.g.: `cancel`.",
+                If you did not initiate this, ignore this or contact the bot owner.
+                To cancel the authentication, type anything invalid, e.g.: `cancel`."""
+                .format(keyrequest),
                 embed=embed)
         except discord.Forbidden:
-            post_fields = {'userid': keyrequest.userid,
-                            'state': keyrequest.state,
-                            'error': 'user blocked verification dm'}
+            post_fields = {
+                'userid': keyrequest.userid,
+                'state': keyrequest.state,
+                'error': 'user blocked verification dm'
+            }
 
-            request = Request(keyrequest.callback, urlencode(post_fields).encode())
+            request = Request(keyrequest.callback,
+                              urlencode(post_fields).encode())
             urlopen(request)
             return
         answer = None
@@ -70,14 +76,17 @@ class AuthApiMixin:
         except asyncio.TimeoutError:
             await self.bot.edit_message(message, "Auth request timed out...")
 
-            post_fields = {'userid': keyrequest.userid,
-                            'state': keyrequest.state,
-                            'error': 'timeout'}
+            post_fields = {
+                'userid': keyrequest.userid,
+                'state': keyrequest.state,
+                'error': 'timeout'
+            }
 
-            request = Request(keyrequest.callback, urlencode(post_fields).encode())
+            request = Request(keyrequest.callback,
+                              urlencode(post_fields).encode())
             urlopen(request)
             return
-        
+
         keys_to_export = []
         keys = doc.get("keys", [])
         if answer.content == 'all':
@@ -92,20 +101,25 @@ class AuthApiMixin:
                     num = int(number) - 1
                     keys_to_export.append(keys[num])
             except:
-                user.send("You don't have a key with the ID {}. ".format(last_key)
-                "Authentication process canceled.")
+                user.send("You don't have a key with the ID {}. "
+                          "Authentication process canceled.".format(last_key))
 
-                post_fields = {'userid': keyrequest.userid,
-                                'state': keyrequest.state,
-                                'error': 'user canceled'}
+                post_fields = {
+                    'userid': keyrequest.userid,
+                    'state': keyrequest.state,
+                    'error': 'user canceled'
+                }
 
-                request = Request(keyrequest.callback, urlencode(post_fields).encode())
+                request = Request(keyrequest.callback,
+                                  urlencode(post_fields).encode())
                 urlopen(request)
                 return
 
-        post_fields = {'userid': keyrequest.userid,
-                       'state': keyrequest.state,
-                       'api_keys': keys_to_export}
+        post_fields = {
+            'userid': keyrequest.userid,
+            'state': keyrequest.state,
+            'api_keys': keys_to_export
+        }
 
         request = Request(keyrequest.callback, urlencode(post_fields).encode())
         urlopen(request)
